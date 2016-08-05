@@ -19,3 +19,12 @@ $ ./vis.py inp -i ./test/inp.in
 ```
 $ ./vis.py sol -i ./test/sol.in
 ```
+
+# 問題のダウンロード
+
+```
+$ ./call_api.py download
+```
+
+追加された問題のみダウンロードしてくる
+ダウンロードには、[問題数]秒かかる (API制限のため)
