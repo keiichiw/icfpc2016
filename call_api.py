@@ -58,7 +58,7 @@ def download_problems():
     else:
       print("Downloading Problem " + str(p_id))
       time.sleep(1)
-      txt = get_problem(p_id, p_hash)
+      txt = get_problem(p_id, p_hash, pathname)
 
 def main():
   parser = argparse.ArgumentParser()
