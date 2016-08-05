@@ -68,7 +68,13 @@ def plot_input(data):
   lc = mc.LineCollection(data["lines"], linewidths=2)
   fig, ax = pl.subplots()
   ax.set_aspect('equal')
-  pl.axis([-0.5, 1.5, -0.5, 1.5])
+  (c_x, c_y) = (0, 0)
+  for [(x1, y1), (x2, y2)] in data["lines"]:
+    c_x += x1 + x2
+    c_y += y1 + y2
+  c_x /= len(data["lines"]) * 2.0
+  c_y /= len(data["lines"]) * 2.0
+  pl.axis([-1 + c_x, 1 + c_x, -1 + c_y, 1 + c_y])
   pl.grid(True)
   ax.add_collection(lc)
   ax.margins(0.1)
