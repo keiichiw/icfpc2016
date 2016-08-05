@@ -2,3 +2,4 @@
 *.o
 *.out
 /problems/*.in
+/problems/*.png

@@ -18,6 +18,7 @@ def frac2num(s):
     return a / b
 
 def parse_point(s):
+  # print(s)
   [a, b] = s.split(",")
   return (frac2num(a), frac2num(b))
 
@@ -63,7 +64,8 @@ def read_solution(infile):
     print("Input Error:" + sys.exc_info()[0])
     raise
 
-def plot_input(data):
+def plot_input(data, filename):
+  plt.clf()
   # http://stackoverflow.com/a/21357666
   lc = mc.LineCollection(data["lines"], linewidths=2)
   fig, ax = pl.subplots()
@@ -78,9 +80,11 @@ def plot_input(data):
   pl.grid(True)
   ax.add_collection(lc)
   ax.margins(0.1)
+  #plt.savefig(filename[0:-3]+".png")
   plt.show()
 
-def plot_solution(data):
+def plot_solution(data, filename):
+  plt.clf()
   fig = plt.figure()
   # 展開図
   subplt = fig.add_subplot(2, 2, 1,aspect='equal')
@@ -111,9 +115,20 @@ def plot_solution(data):
   pl.axis([-0.5, 1.5, -0.5, 1.5])
   pl.grid(True)
   plt.plot()
+  #pl.savefig(filename[0:-3]+".png")
   pl.show()
 
 def main():
+  # for i in range(101):
+  #   filename = "./problems/problem_"+str(i+1)+".in"
+  #   print(filename)
+  #   try:
+  #     data = read_input(filename)
+  #     plot_input(data,filename)
+  #   except Exception:
+  #     pass
+  # return
+
   parser = argparse.ArgumentParser()
   parser.add_argument('mode', choices=['inp', 'sol'], help="'input' or 'sol'")
   parser.add_argument("-i", "--input", type=str, required=True, help="file name (e.g. test.in)")
@@ -121,10 +136,10 @@ def main():
   infile = args.input
   if args.mode == "inp":
     data = read_input(infile)
-    plot_input(data)
+    plot_input(data, infile)
   else:
     data = read_solution(infile)
-    plot_solution(data)
+    plot_solution(data, infile)
 
 if __name__ == '__main__':
   main()
