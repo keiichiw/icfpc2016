@@ -46,6 +46,9 @@ class Point:
   def __repr__(self):
     return "({}, {})".format(self.x, self.y)
 
+  def to_s(self):
+    return "{},{}".format(self.x, self.y)
+
   def __eq__(self, other):
     return (self.x == other.x) and (self.y == other.y)
 
@@ -196,15 +199,41 @@ class Paper:
     self.vertex = Paper.vertex_sort(new_vs)
     self.skeltons.append(line)
 
+class Origami:
+  def __init__(self, init=None):
+    if init == None:
+      self.sv = [Point(0, 0), Point(1, 0),
+                 Point(1, 1), Point(0, 1)]
+      self.dv = [Point(0, 0), Point(1, 0),
+                 Point(1, 1), Point(0, 1)]
+      self.fs = [[0, 1, 2, 3]]
+    else:
+      assert False
+    assert (len(self.sv) == len(self.dv))
+
+  def to_s(self):
+    def ln(s):
+      return str(s) + "\n"
+    out = ""
+    out += ln(len(self.sv))
+    for v in self.sv:
+      out += ln(v.to_s())
+    out += ln(len(self.fs))
+    for f in self.fs:
+      s = str(len(f))
+      for i in f:
+        s += " " + str(i)
+      out += ln(s)
+    for v in self.dv:
+      out += ln(v.to_s())
+    return out
+
+  def __repr__(self):
+    return "(src={}, dst={}, facets={})".format(self.sv, self.dv, self.fs)
+
 def main():
-  vs = [Point("0", "0"), Point("0", "1"), Point("1", "1"), Point("1", "0")]
-  paper = Paper(vs)
-  p_zero = Point("0", "0")
-  Point("0", "0")
-  line = Line(Point("0", "1/2"), Point("1/2", "0"))
-  print(paper)
-  paper.fold(line, p_zero)
-  print(paper)
+  origami = Origami()
+  print(origami.to_s())
 
 if __name__ == '__main__':
   main()
