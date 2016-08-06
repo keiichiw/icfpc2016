@@ -188,7 +188,7 @@ class Target:
   def take_convexhull(self):
     # 頂点リストccwへ変換
     ln = len(self.vs)
-    svs = sorted(self.vs, key=lambda p:p.x)
+    svs = sorted(self.vs, key=lambda p:(p.x, p.y))
     nvs = [None for _ in range(ln*2)]
     i=0; k=0
     while i<ln:
@@ -420,12 +420,11 @@ class Origami:
 
       fix_facet = fix_vs + end_points
       move_facet = move_vs + end_points
-      if len(fix_facet) != 0:
-        assert(len(fix_facet) >= 3)
+
+      if len(fix_facet) >= 3:
         new_fs.append(fix_facet)
 
-      if len(move_facet) != 0:
-        assert(len(move_facet) >= 3)
+      if len(move_facet) >= 3:
         new_fs.append(move_facet)
 
 
@@ -439,6 +438,19 @@ class Origami:
     self.dv = new_dv
     self.fs = sorted_new_fs
 
+
+def solve_problem(p_id):
+  print("Problem " + str(p_id))
+  origami = Origami()
+  target = Target("./problems/problem_" + str(p_id) + ".in")
+  origami.solve(target)
+  outfile = "./problems/solution_" + str(p_id) + ".out"
+  with open(outfile, "w") as f:
+    f.write(origami.to_s())
+
+def solve_all():
+  for i in range(1, 102):
+    solve_problem(i)
 
 def main():
   origami = Origami("ownProbs/sol_33.in")
