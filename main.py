@@ -203,15 +203,31 @@ class Target:
     return nvs[:k-1]
 
 class Origami:
-  def __init__(self, init=None):
-    if init == None:
+  def __init__(self, filename=None):
+    if filename == None:
       self.sv = [Point(0, 0), Point(1, 0),
                  Point(1, 1), Point(0, 1)]
       self.dv = [Point(0, 0), Point(1, 0),
                  Point(1, 1), Point(0, 1)]
       self.fs = [[0, 1, 2, 3]]
     else:
-      assert False
+      try:
+        with open(filename) as f:
+          vnum = int(f.readline())
+          self.sv = [None for _ in range(vnum)]
+          for i in range (vnum):
+            self.sv[i] = parse_pointstr(f.readline())
+          fnum = int(f.readline())
+          self.fs = [None for _ in range(fnum)]
+          for i in range (fnum):
+            idxs = f.readline().split()[1:]
+            self.fs[i] = list(map(lambda s: int(s), idxs))
+          self.dv = [None for _ in range(vnum)]
+          for i in range (vnum):
+            self.dv[i] = parse_pointstr(f.readline())
+      except Exception:
+        print("hey!")
+        assert False
     assert (len(self.sv) == len(self.dv))
 
   def solve(self, target):
@@ -238,7 +254,6 @@ class Origami:
   def __repr__(self):
     return "(src={}, dst={}, facets={})".format(self.sv, self.dv, self.fs)
 
-
   def greedy(self, target):
     v_size = len(target.vs)
     updated = True
@@ -261,6 +276,20 @@ class Origami:
             updated = True
             break_flg = True
             break
+
+  def rotate(self, center, s, c):
+    # center:Point, s,c*Fraction
+    assert(s**2+c**2==1)
+    def sub_rotate(v):
+      nx = (v.x-center.x)*c-(v.y-center.y)*s + center.x
+      ny = (v.x-center.x)*s+(v.y-center.y)*c + center.y
+      return Point(nx,ny)
+    self.dv = list(map(sub_rotate, self.dv))
+
+  def shift(self, move):
+    def sub_shift(v):
+      return Point(v.x+move.x, v.y+move.y)
+    self.dv = list(map(sub_shift, self.dv))
 
   def intersect_LF(self, line, facet_id):# 直線とfacetが交叉するか
     facet = self.fs[facet_id]
@@ -412,9 +441,15 @@ class Origami:
 
 
 def main():
-  origami = Origami()
-  target = Target("./problems/problem_100.in")
-  origami.solve(target)
+  origami = Origami("ownProbs/sol_17.in")
+  #origami.fold(Line(Point("0","0"), Point("1","1/2")), Clockwise.clockwise)
+  #origami.fold(Line(Point("0", "1/2"), Point("1/2", "1/4")), Clockwise.clockwise)
+  #origami.fold(Line(Point("0", "1/2"), Point("1", "1/2")), Clockwise.clockwise)
+  #origami.solve(target)
+  origami.rotate(Point("0","0"),Fraction("4/5"),Fraction("3/5"))
+  origami.shift(Point("2/5","0"))
+  origami.fold(Line(Point("0","0"), Point("1","0")), Clockwise.ccw)
+  origami.shift(Point("0","66/80"))
   print(origami.to_s())
 
 if __name__ == '__main__':
