@@ -16,7 +16,6 @@ def api_snapshot_list():
     'http://2016sv.icfpcontest.org/api/snapshot/list',
     headers={'X-API-Key': '131-63b8c959fa9c6723a25ed0420536ee98'})
   return response.json()["snapshots"]
-
 def api_bolb(h, text_format=False):
   response = requests.get(
     'http://2016sv.icfpcontest.org/api/blob/' + h,
@@ -24,7 +23,14 @@ def api_bolb(h, text_format=False):
   if text_format:
     return response.text
   return response.json()
-
+def api_submit_sol(prb_id, sol):
+  payloads = {'problem_id':str(prb_id), 'solution_spec':sol}
+  #print(payloads)
+  response = requests.post(
+    'http://2016sv.icfpcontest.org/api/solution/submit',
+    headers={'X-API-Key': '131-63b8c959fa9c6723a25ed0420536ee98'},
+    data=payloads)
+  return response.json()
 
 def get_problem(problem_id, problem_hash, filepath):
   r = api_bolb(problem_hash, text_format=True)
@@ -60,14 +66,38 @@ def download_problems():
       time.sleep(1)
       txt = get_problem(p_id, p_hash, pathname)
 
+def submit_solutions(ids):
+  """
+  submit each existing soltion file
+  """
+  for i in range(ids):
+    solfile = 'problems/solution_{}.out'.format(i+1)
+    try:
+      with open(solfile, "r") as f:
+        sol = f.read()
+        res = api_submit_sol(i+1, sol)
+        print(res)
+    except Exception:
+      print("no solution file: id {}".format(i+1))
+      pass
+
 def main():
   parser = argparse.ArgumentParser()
-  parser.add_argument('mode', choices=['download', 'hello'], help="download")
+  parser.add_argument('mode', choices=['download', 'hello', 'solve'], help="download")
+  parser.add_argument("-m", "--maxid", type=int, required=False, help="maximum id for submition")
   args = parser.parse_args()
   if args.mode == "hello":
     print(api_hello())
   elif args.mode == "download":
     download_problems()
+  elif args.mode == "solve":
+    try:
+      mid = args.maxid
+      submit_solutions(mid)
+    except Exception:
+      print("[--maxid m] not given")
+      pass
+
 
 if __name__ == '__main__':
   main()
