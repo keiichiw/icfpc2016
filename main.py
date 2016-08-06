@@ -2,13 +2,13 @@
 # -*- encoding: utf-8 -*-
 from functools import cmp_to_key
 import copy
-from enum import Enum
+from enum import IntEnum, Enum
 import fractions
 import math
 from decimal import *
 getcontext().prec = 100
 
-class Clockwise(Enum):
+class Clockwise(IntEnum):
   ccw = 1
   clockwise = -1
   cab = 2
@@ -22,6 +22,7 @@ class INOUT(Enum):
 
 class Point:
   def frac2decimal(s):
+    s=s.strip()
     x = s.find("/")
     if x == -1:
       return Decimal(s)
@@ -45,6 +46,9 @@ class Point:
 
   def __repr__(self):
     return "({}, {})".format(self.x, self.y)
+
+  def to_s(self):
+    return "{},{}".format(self.x, self.y)
 
   def __eq__(self, other):
     return (self.x == other.x) and (self.y == other.y)
@@ -100,6 +104,12 @@ class Point:
       return Clockwise.abc
     return Clockwise.otherwise
 
+
+def parse_pointstr(s):
+  # parse '1/2,1/2'
+  [a,b] = s.split(",")
+  return Point(a,b)
+
 class Line:
   def __init__(self, p1, p2):
     self.p1 = p1
@@ -120,6 +130,38 @@ class Line:
   def lin_sym(self, p):
     d = self.projection(p) - p
     return p + d * Decimal(2)
+
+# 目的とする形
+class Target:
+  def __init__(self, filename):
+    self.vs = []
+    try:
+      with open(filename) as f:
+        np = int(f.readline())
+        for p in range(np):
+          nv = int(f.readline())
+          for v in range(nv):
+            self.vs.append(parse_pointstr(f.readline()))
+    except Exception:
+      print("error...")
+      raise
+    self.vs = self.take_convexhull()
+  def take_convexhull(self):
+    # 頂点リストccwへ変換
+    ln = len(self.vs)
+    svs = sorted(self.vs, key=lambda p:p.x)
+    nvs = [None for _ in range(ln*2)]
+    i=0; k=0
+    while i<ln:
+      while k>1 and Point.ccw(nvs[k-2],nvs[k-1],svs[i])<=0:
+        k-=1
+      nvs[k] = svs[i]; i+=1; k+=1;
+    i=ln-2; t=k+1
+    while i>=0:
+      while k>=t and Point.ccw(nvs[k-2],nvs[k-1],svs[i])<=0:
+        k-=1
+      nvs[k] = svs[i]; i-=1; k+=1;
+    return nvs[:k-1]
 
 class Paper:
   def __init__(self, vs):# TODO: vsが反時計回りであること
@@ -196,15 +238,43 @@ class Paper:
     self.vertex = Paper.vertex_sort(new_vs)
     self.skeltons.append(line)
 
+class Origami:
+  def __init__(self, init=None):
+    if init == None:
+      self.sv = [Point(0, 0), Point(1, 0),
+                 Point(1, 1), Point(0, 1)]
+      self.dv = [Point(0, 0), Point(1, 0),
+                 Point(1, 1), Point(0, 1)]
+      self.fs = [[0, 1, 2, 3]]
+    else:
+      assert False
+    assert (len(self.sv) == len(self.dv))
+
+  def to_s(self):
+    def ln(s):
+      return str(s) + "\n"
+    out = ""
+    out += ln(len(self.sv))
+    for v in self.sv:
+      out += ln(v.to_s())
+    out += ln(len(self.fs))
+    for f in self.fs:
+      s = str(len(f))
+      for i in f:
+        s += " " + str(i)
+      out += ln(s)
+    for v in self.dv:
+      out += ln(v.to_s())
+    return out
+
+  def __repr__(self):
+    return "(src={}, dst={}, facets={})".format(self.sv, self.dv, self.fs)
+
 def main():
-  vs = [Point("0", "0"), Point("0", "1"), Point("1", "1"), Point("1", "0")]
-  paper = Paper(vs)
-  p_zero = Point("0", "0")
-  Point("0", "0")
-  line = Line(Point("0", "1/2"), Point("1/2", "0"))
-  print(paper)
-  paper.fold(line, p_zero)
-  print(paper)
+  t = Target("problems/problem_100.in")
+  print(t.vs) ;return
+  origami = Origami()
+  print(origami.to_s())
 
 if __name__ == '__main__':
   main()
