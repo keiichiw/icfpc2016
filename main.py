@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # -*- encoding: utf-8 -*-
-from functools import cmp_to_key
+import sys
 import copy
 from enum import IntEnum, Enum
 import fractions
@@ -215,6 +215,7 @@ class Origami:
     assert (len(self.sv) == len(self.dv))
 
   def solve(self, target):
+    self.greedy(target)
     self.dv = list(map(lambda v: v+target.shift, self.dv))
 
   def to_s(self):
@@ -236,6 +237,30 @@ class Origami:
 
   def __repr__(self):
     return "(src={}, dst={}, facets={})".format(self.sv, self.dv, self.fs)
+
+
+  def greedy(self, target):
+    v_size = len(target.vs)
+    updated = True
+    cnt = 0
+    while updated:
+      updated = False
+      break_flg = False
+      for i in range(v_size):
+        if break_flg:
+          break
+        a = target.vs[i]
+        b = target.vs[(i + 1) % v_size]
+        edge = Line(a, b)
+        for v in self.dv:
+          if edge.ccw(v) == Clockwise.clockwise:
+            #updated = True
+            print("Fold {}: {}".format(cnt, edge), file=sys.stderr)
+            cnt += 1
+            self.fold(edge, Clockwise.clockwise)
+            updated = True
+            break_flg = True
+            break
 
   def intersect_LF(self, line, facet_id):# 直線とfacetが交叉するか
     facet = self.fs[facet_id]
@@ -296,6 +321,8 @@ class Origami:
     for f_id in range(len(self.fs)):
       # 折線と交差するfacetについて
       facet = self.fs[f_id]
+
+      ## end_pointsの計算
       if not self.intersect_LF(line, f_id):
         end_points = []
       else:
@@ -343,6 +370,7 @@ class Origami:
         end_points = list(set(end_points))
 
         assert(len(end_points) == 1 or len(end_points) == 2)
+      ## end_pointsの計算 ここまで
 
       # facetの頂点を折り返しによって動くかどうかで分類
       fix_vs = []
@@ -361,9 +389,18 @@ class Origami:
       for v_id in move_vs:
         new_dv[v_id] = line.lin_sym(self.dv[v_id])
 
-      new_fs.append(fix_vs  + end_points)
-      new_fs.append(move_vs + end_points)
+      fix_facet = fix_vs + end_points
+      move_facet = move_vs + end_points
+      if len(fix_facet) != 0:
+        assert(len(fix_facet) >= 3)
+        new_fs.append(fix_facet)
 
+      if len(move_facet) != 0:
+        assert(len(move_facet) >= 3)
+        new_fs.append(move_facet)
+
+
+    ## facetに関するループここまで
     sorted_new_fs = []
     for facet in new_fs:
       p_list = [(v_id, new_dv[v_id]) for v_id in facet]
@@ -376,10 +413,8 @@ class Origami:
 
 def main():
   origami = Origami()
-  origami.fold(Line(Point("0", "0"), Point("1", "1/2")), Clockwise.clockwise)
-  origami.fold(Line(Point("0", "1/2"), Point("1/2", "1/4")), Clockwise.clockwise)
-  origami.fold(Line(Point("0", "1/2"), Point("1", "1/2")), Clockwise.clockwise)
-  #origami.solve(target)
+  target = Target("./problems/problem_100.in")
+  origami.solve(target)
   print(origami.to_s())
 
 if __name__ == '__main__':
