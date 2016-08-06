@@ -8,6 +8,8 @@ import math
 from decimal import *
 getcontext().prec = 100
 
+EPS = Decimal("0.00000000000000000000000000000000001")
+
 class Clockwise(IntEnum):
   ccw = 1
   clockwise = -1
@@ -130,6 +132,39 @@ class Line:
   def lin_sym(self, p):
     d = self.projection(p) - p
     return p + d * Decimal(2)
+
+  def intersect_LL(l1, l2):# 直線同士の交叉
+    a = abs(Point.cross(l1.p2 - l1.p1, l2.p2 - l2.p1)) > EPS
+    b = abs(Point.cross(l1.p2 - l1.p1, l2.p1 - l1.p1)) < EPS
+    return a or b
+
+  def intersect_LS(l, s):# 直線と線分の交叉
+    a = Point.cross(l.p2 - l.p1, s.p1 - l.p1)
+    b = Point.cross(l.p2 - l.p1, s.p2 - l.p1)
+    return a * b < EPS
+
+  def intersect_LP(l, p):# 直線上に点があるか
+    return abs(Point.cross(l.p2 - p, l.p1 - p)) < EPS
+
+  def intersect_SS(s, t):# 線分同士の交叉
+    a = Point.ccw(s.p1, s.p2, t.p1) * Point.ccw(s.p1, s.p2, t.p2) <= 0
+    b = Point.ccw(t.p1, t.p2, s.p1) * Point.ccw(t.p1, t.p2, s.p2) <= 0
+    return a and b
+
+  def intersect_SP(s, p):# 線分上に点があるか
+    a = abs(s.p1 - p)
+    b = abs(s.p2 - p)
+    c = abs(s.p2 - s.p1)
+    return a + b - c < EPS # 三角不等式
+
+  def cross_point(l, m):# 直線の交点
+    a = Point.dot(l.p2 - l.p1, m.p2 - m.p1)
+    b = Point.dot(l.p2 - l.p1, l.p2 - m.p1)
+    if abs(a) < EPS and abs(b) < EPS:
+      return m.p1
+    if abs(a) < EPS:
+      assert False
+    return m.p1 + b / a * (m.p2 - m.p1)
 
 # 目的とする形
 class Target:
@@ -279,6 +314,84 @@ class Origami:
 
   def __repr__(self):
     return "(src={}, dst={}, facets={})".format(self.sv, self.dv, self.fs)
+
+  def intersect_LF(self, line, facet_id):# 直線とfacetが交叉するか
+    facet = self.fs[facet_id]
+    for i in range(len(facet)):
+      edge = Line(self.dv(facet[i]), self.dv(facet[(i + 1) % len(facet)]))
+      if Line.intersect_LS(line, edge):
+        return True
+    return False
+
+  def fold(self, line, ccw_dir):
+    assert(ccw_dir == Clockwise.ccw or ccw_dir == Clockwise.clockwise)
+    new_sv = copy.deepcopy(self.sv)
+    new_dv = copy.deepcopy(self.dv)
+    new_fs = []
+
+    # 新たに追加された点
+    added_v = {}
+    for f_id in range(len(self.fs)):
+      if not Origami.intersect_LF(line, f_id):
+        new_fs.append(self.fs[f_id])
+        continue
+
+      # 折線と交差するfacetについて
+      facet = self.fs[facet_id]
+      d_edges = []
+      for i in range(len(facet)):
+        edge = Line(self.dv(facet[i]), self.dv(facet[(i + 1) % len(facet)]))
+        if Line.intersect_LS(line, edge):
+          d_edges.append(edge)
+
+      assert(len(d_edges) == 2)
+
+      new_p1 = Line.cross_point(line, d_edges[0])
+      new_p2 = Line.cross_point(line, d_edges[1])
+
+      new_p1_src = None # TODO: new_p1の初期状態での座標
+      new_p2_src = None # TODO: new_p2の初期状態での座標
+
+      if new_p1 in added_v:
+        new_id1 = added_v[new_p1]
+      else:
+        new_id1 = len(new_sv)
+        new_sv.append(new_p1_src)
+        new_dv.append(new_p1)
+        added_v[new_p1] = new_id1
+
+      if new_p2 in added_v:
+        new_id2 = added_v[new_p2]
+      else:
+        new_id2 = len(new_sv)
+        new_sv.append(new_p2_src)
+        new_dv.append(new_p2)
+        added_v[new_p2] = new_id2
+
+      # facetの頂点を折り返しによって動くかどうかで分類
+      fix_vs = []
+      move_vs = []
+      for v_id in facet:
+        v = self.ds[v_id]
+        if ccw_dir == Point.ccw(line.p1, line.p2, v):
+          move_vs.append(v_id) # 折り返しで移動する頂点
+        else:
+          fix_vs.append(v_id)  # 折り返しで移動しない頂点
+
+      # 移動する頂点達のdstを変更
+      for v_id in move_vs:
+        new_dvs[v_id] = line.lin_sym(self.dv[v_id])
+
+      new_fs.append(fix_vs  + [n_v_id1, n_v_id2])
+      new_fs.append(move_vs + [n_v_id1, n_v_id2])
+
+    # TODO new_fsの中身を反時計周りになるようにソート (convex full?)
+    new_fs = list(map(facet_sort, new_fs))
+
+    self.sv = new_sv
+    self.dv = new_dv
+    self.fs = new_fs
+
 
 def main():
   origami = Origami()
