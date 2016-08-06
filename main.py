@@ -110,15 +110,17 @@ class Line:
   def ccw(self, p):
     return Point.ccw(self.p1, self.p2, p)
 
-  def projection(self, p):
-    a = p - self.p1
-    b = self.p2 - self.p1
-    t = (Point.dot(a, b) / b.norm()) / b.norm()
-    return self.p1 + b * t
-
   def lin_sym(self, p):
-    d = self.projection(p) - p
-    return p + d * Fraction(2)
+    a, b = self.p1.x, self.p1.y
+    c, d = self.p2.x, self.p2.y
+
+    # 交点のx座標
+    s = (a - c) * (b - d) / ((b - d) ** 2 - (a - c) ** 2)
+
+    x = 2 * s - p
+    y = ((a - c) / (b - d)) * x + q - ((a - c) / (b - d)) * p
+
+    return Point(x, y)
 
   def intersect_LL(l1, l2):# 直線同士の交叉
     a = abs(Point.cross(l1.p2 - l1.p1, l2.p2 - l2.p1)) > EPS
@@ -192,6 +194,7 @@ class Target:
       nvs[k] = svs[i]; i-=1; k+=1;
     return nvs[:k-1]
 
+# Obsolete
 class Paper:
   def __init__(self, vs):# TODO: vsが反時計回りであること
     self.vertex = Paper.vertex_sort(vs)
@@ -310,6 +313,38 @@ class Origami:
         return True
     return False
 
+  def orig_position(src_edge, dst_edge, dst_point):
+    (a1, b1) = (dst_edge.p1.x, dst_edge.p1.y)
+    (c1, d1) = (dst_edge.p2.x, dst_edge.p2.y)
+
+    (a2, b2) = (src_edge.p1.x, src_edge.p1.y)
+    (c2, d2) = (src_edge.p2.x, src_edge.p2.y)
+
+    (s1, t1) = (dst_point.x, dst_point.y)
+
+    s2 = (1 / (c1 - a1)) * ((c - s1) * a2 - (a1 - s1) * c2)
+    t2 = (1 / (d1 - b1)) * ((d - t1) * b2 - (b1 - t1) * d2)
+
+    return Point(s2, t2)
+
+  def facet_sort(vs):# 凸包を求めることで、facetの頂点をソートする
+    # vs は (id, point)のリスト
+    # 頂点リストccwへ変換
+    ln = len(vs)
+    svs = sorted(vs, key=lambda pair:pair[1].x)
+    nvs = [None for _ in range(ln*2)]
+    i=0; k=0
+    while i<ln:
+      while k>1 and Point.ccw(nvs[k-2][1],nvs[k-1][1],svs[i][1])<=0:
+        k-=1
+      nvs[k] = svs[i]; i+=1; k+=1;
+    i=ln-2; t=k+1
+    while i>=0:
+      while k>=t and Point.ccw(nvs[k-2][1],nvs[k-1][1],svs[i][1])<=0:
+        k-=1
+      nvs[k] = svs[i]; i-=1; k+=1;
+    return nvs[:k-1]
+
   def fold(self, line, ccw_dir):
     assert(ccw_dir == Clockwise.ccw or ccw_dir == Clockwise.clockwise)
     new_sv = copy.deepcopy(self.sv)
@@ -329,15 +364,18 @@ class Origami:
       for i in range(len(facet)):
         edge = Line(self.dv(facet[i]), self.dv(facet[(i + 1) % len(facet)]))
         if Line.intersect_LS(line, edge):
-          d_edges.append(edge)
+          d_edges.append((i, (i + 1) % len(facet)))
 
       assert(len(d_edges) == 2)
 
+      # 交点を求める
       new_p1 = Line.cross_point(line, d_edges[0])
       new_p2 = Line.cross_point(line, d_edges[1])
 
-      new_p1_src = None # TODO: new_p1の初期状態での座標
-      new_p2_src = None # TODO: new_p2の初期状態での座標
+      src_edges = [Line(self.sv[i], self.sv[j]) for (i, j) in d_edges]
+      dst_edges = [Line(self.dv[i], self.dv[j]) for (i, j) in d_edges]
+      new_p1_orig = Origami.orig_position(src_edges[0], dst_edges[0], new_p1)
+      new_p2_orig = Origami.orig_position(src_edges[1], dst_edges[1], new_p2)
 
       if new_p1 in added_v:
         new_id1 = added_v[new_p1]
@@ -372,12 +410,15 @@ class Origami:
       new_fs.append(fix_vs  + [n_v_id1, n_v_id2])
       new_fs.append(move_vs + [n_v_id1, n_v_id2])
 
-    # TODO new_fsの中身を反時計周りになるようにソート (convex full?)
-    new_fs = list(map(facet_sort, new_fs))
+    sorted_new_fs = []
+    for facet in new_fs:
+      p_list = [(v_id, new_dv[v_id]) for v_id in facet]
+      sorted_f = list(map(lambda p:p[0], facet_sort(plist)))
+      sorted_new_fs.append(sorted_f)
 
     self.sv = new_sv
     self.dv = new_dv
-    self.fs = new_fs
+    self.fs = sorted_new_fs
 
 
 def main():
