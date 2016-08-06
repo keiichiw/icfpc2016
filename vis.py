@@ -25,19 +25,22 @@ def parse_point(s):
 def read_input(infile):
   try:
     with open(infile, "r") as f:
-      p = int(f.readline())
-      assert(p == 1) # TODO: 1以外来る?
-      vnum = int(f.readline())
-      vs = []
-      for i in range(vnum):
-        l = f.readline()
-        vs.append(parse_point(l))
+      ps = []
+      pnum = int(f.readline())
+      #assert(p == 1) # TODO: 1以外来る? -> 来る
+      for p in range(pnum):
+        vnum = int(f.readline())
+        vs = []
+        for i in range(vnum):
+          l = f.readline()
+          vs.append(parse_point(l))
+        ps.append(vs)
       line_num = int(f.readline())
       lines = []
       for i in range(line_num):
         [p1, p2] = f.readline().split(" ")
         lines.append((parse_point(p1), parse_point(p2)))
-      return {"vs": vs, "polygons": [vs], "lines": lines}
+      return {"vs": vs, "polygons": ps, "lines": lines}
   except Exception:
     print("Input Error:" + sys.exc_info()[0])
     raise
