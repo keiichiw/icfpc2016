@@ -134,10 +134,10 @@ class Line:
     b = abs(Point.cross(l1.p2 - l1.p1, l2.p1 - l1.p1)) == 0
     return a or b
 
-  def intersect_LS(l, s):# 直線と線分の交叉
+  def intersect_LS(l, s):# 直線と線分の交叉 onlineのときもTrueを返す
     a = Point.cross(l.p2 - l.p1, s.p1 - l.p1)
     b = Point.cross(l.p2 - l.p1, s.p2 - l.p1)
-    return a * b < 0
+    return a * b <= 0
 
   def intersect_LP(l, p):# 直線上に点があるか
     return abs(Point.cross(l.p2 - p, l.p1 - p)) == 0
@@ -203,82 +203,6 @@ class Target:
         k-=1
       nvs[k] = svs[i]; i-=1; k+=1;
     return nvs[:k-1]
-
-# Obsolete
-class Paper:
-  def __init__(self, vs):# TODO: vsが反時計回りであること
-    self.vertex = Paper.vertex_sort(vs)
-    self.skeltons = []
-    self.in_vertex = []
-
-  def __repr__(self):
-    return "({}, {})".format(self.vertex, self.skeltons)
-
-  def contains(self, p):
-    in_flg = False
-    for i in range(len(self.vertex)):
-      a = self.vertex[i] - p
-      b = self.vertex[(i + 1) % len(self.vertex)]
-      if a.x > b.x:
-        t = b
-        b = a
-        a = b
-      if a.x <= 0 and 0 < b.x:
-        if Point.cross(a, b) < 0:
-          in_flg = not in_flg
-      if Point.cross(a, b) == 0 and Point.dot(a, b) <= 0:
-        return INOUT.ON
-    if in_flg:
-      return INOUT.IN
-    else:
-      return INOUT.OUT
-
-  def vertex_sort(vs):
-    center = Point(0, 0)
-    for v in vs:
-      center = center + v
-    ini = Point(0, 0)
-    center = center / (len(vs) + 0.0)
-    base = (ini - center).regular()
-    baseline = Line(center, ini)
-
-    def angle(p1):
-      if p1 == ini:
-        return 0
-      ccw = baseline.ccw(p1)
-      cos = Point.dot(base, (p1 - center).regular())
-      theta = math.acos(cos)
-      if ccw == Clockwise.clockwise:
-        theta = 2 * math.acos(-1) - theta
-      return theta
-    #print([(v, angle(v), baseline.ccw(v)) for v in vs])
-    srted = sorted(vs, key=angle)
-    ret = []
-    for v in srted:
-      if not (v in ret):
-        ret.append(v)
-    return ret
-
-  def fold(self, line, v):
-    center = Point("1/2", "1/2")
-    d = line.projection(v) - v
-    v_ccw = line.ccw(v)
-    assert(v_ccw == Clockwise.ccw or v_ccw == Clockwise.clockwise)
-    new_vs = []
-    new_in_vs = []
-    for v in self.vertex:
-      if line.ccw(v) != v_ccw:
-        new_vs.append(v)
-      else:
-        n_v = line.lin_sym(v)
-        if not self.contains(n_v) != INOUT.IN:# TODO: 既存の頂点とONの時に注意
-          new_vs.append(n_v)
-        else:
-          pass # TODO 内部の点 new_in_vs.append(n_v)
-    new_vs.append(line.p1)
-    new_vs.append(line.p2)
-    self.vertex = Paper.vertex_sort(new_vs)
-    self.skeltons.append(line)
 
 class Origami:
   def __init__(self, init=None):
@@ -373,54 +297,56 @@ class Origami:
     # 新たに追加された点
     added_v_dict = {}
     for f_id in range(len(self.fs)):
-      if not self.intersect_LF(line, f_id):
-        new_fs.append(self.fs[f_id])
-        continue
-
       # 折線と交差するfacetについて
       facet = self.fs[f_id]
-      d_edges = []
-      f_size = len(facet)
-      for i in range(f_size):
-        v_id1 = facet[i]
-        v_id2 = facet[(i + 1) % f_size]
-        edge = Line(self.dv[v_id1], self.dv[v_id2])
-        if Line.intersect_LS(line, edge):
-          d_edges.append((v_id1, v_id2))
-
-      if len(d_edges) != 2:
-        print(d_edges)
-      assert(len(d_edges) == 2)
-
-      src_edges = [Line(self.sv[i], self.sv[j]) for (i, j) in d_edges]
-      dst_edges = [Line(self.dv[i], self.dv[j]) for (i, j) in d_edges]
-
-      # 交点を求める
-      new_p1 = Line.cross_point(line, dst_edges[0])
-      new_p2 = Line.cross_point(line, dst_edges[1])
-
-      new_p1_orig = Origami.orig_position(src_edges[0], dst_edges[0], new_p1)
-      new_p2_orig = Origami.orig_position(src_edges[1], dst_edges[1], new_p2)
-
-      gen_key = lambda p:(min(p[0], p[1]), max(p[0], p[1]))
-      key1 = gen_key(d_edges[0])
-      key2 = gen_key(d_edges[1])
-
-      if key1 in added_v_dict:
-        new_id1 = added_v_dict[key1]
+      if not self.intersect_LF(line, f_id):
+        end_points = []
+        print("hey")
       else:
-        new_id1 = len(new_sv)
-        new_sv.append(new_p1_orig)
-        new_dv.append(new_p1)
-        added_v_dict[key1] = new_id1
+        d_edges = []
+        f_size = len(facet)
+        for i in range(f_size):
+          v_id1 = facet[i]
+          v_id2 = facet[(i + 1) % f_size]
+          edge = Line(self.dv[v_id1], self.dv[v_id2])
+          if Line.intersect_LS(line, edge):
+            d_edges.append((v_id1, v_id2))
 
-      if key2 in added_v_dict:
-        new_id2 = added_v_dict[key2]
-      else:
-        new_id2 = len(new_sv)
-        new_sv.append(new_p2_orig)
-        new_dv.append(new_p2)
-        added_v_dict[key2] = new_id2
+        end_points = []
+        for (v_id1, v_id2) in d_edges:
+          edge = Line(self.dv[v_id1], self.dv[v_id2])
+          if Line.intersect_LP(line, edge.p1) and Line.intersect_LP(line, edge.p2):
+            # 折れ線上に辺がある場合
+            end_points.append(v_id1)
+            end_points.append(v_id2)
+          elif Line.intersect_LP(line, edge.p1):
+            # 端点1が折れ線上にある
+            end_points.append(v_id1)
+          elif Line.intersect_LP(line, edge.p2):
+            # 端点2が折れ線上にある
+            end_points.append(v_id2)
+          else:
+            # 交点がある
+            src_edge = Line(self.sv[v_id1], self.sv[v_id2])
+            dst_edge = Line(self.dv[v_id1], self.dv[v_id2])
+
+            cp = Line.cross_point(line, dst_edge)
+            cp_orig = Origami.orig_position(src_edge, dst_edge, cp)
+            key = (cp_orig.x, cp_orig.y)
+            if key in added_v_dict:
+              end_v_id = added_v_dict[key]
+            else:
+              # 新たな点の生成
+              end_v_id = len(new_sv)
+              new_sv.append(cp_orig)
+              new_dv.append(cp)
+              added_v_dict[key] = end_v_id
+
+            end_points.append(end_v_id)
+
+        end_points = list(set(end_points))
+
+        assert(len(end_points) == 1 or len(end_points) == 2)
 
       # facetの頂点を折り返しによって動くかどうかで分類
       fix_vs = []
@@ -429,15 +355,18 @@ class Origami:
         v = self.dv[v_id]
         if ccw_dir == Point.ccw(line.p1, line.p2, v):
           move_vs.append(v_id) # 折り返しで移動する頂点
-        else:
+        elif ccw_dir == -Point.ccw(line.p1, line.p2, v):
           fix_vs.append(v_id)  # 折り返しで移動しない頂点
+        else:
+          assert(v_id in end_points)
+          continue
 
       # 移動する頂点達のdstを変更
       for v_id in move_vs:
         new_dv[v_id] = line.lin_sym(self.dv[v_id])
 
-      new_fs.append(fix_vs  + [new_id1, new_id2])
-      new_fs.append(move_vs + [new_id1, new_id2])
+      new_fs.append(fix_vs  + end_points)
+      new_fs.append(move_vs + end_points)
 
     print("new_fs:", new_fs)
     sorted_new_fs = []
@@ -453,9 +382,9 @@ class Origami:
 
 def main():
   origami = Origami()
-  #origami.fold(Line(Point("0", "1/2"), Point("1", "0")), Clockwise.clockwise)
-  origami.fold(Line(Point("0", "0"), Point("0", "1")), Clockwise.clockwise)
-  #origami.fold(Line(Point("1", "1/2"), Point("0", "1/2")), Clockwise.ccw)
+  origami.fold(Line(Point("0", "1/2"), Point("1", "0")), Clockwise.clockwise)
+  origami.fold(Line(Point("0", "1/2"), Point("1", "1/2")), Clockwise.clockwise)
+  origami.fold(Line(Point("1", "1/2"), Point("0", "1/2")), Clockwise.ccw)
   #origami.solve(target)
   print(origami.to_s())
 
