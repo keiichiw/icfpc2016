@@ -46,6 +46,9 @@ class Point:
   def __repr__(self):
     return "({}, {})".format(self.x, self.y)
 
+  def __eq__(self, other):
+    return (self.x == other.x) and (self.y == other.y)
+
   def __add__(self, other):
     return Point(self.x + other.x, self.y + other.y)
 
@@ -150,36 +153,27 @@ class Paper:
     center = Point(0, 0)
     for v in vs:
       center = center + v
+    ini = Point(0, 0)
     center = center / (len(vs) + 0.0)
-    ini = copy.deepcopy(vs[0])
     base = (ini - center).regular()
     baseline = Line(center, ini)
-    print("base=", baseline)
-    def comp(p1, p2):
+
+    def angle(p1):
       if p1 == ini:
-        return 1
-      if p2 == ini:
-        return -1
-      if p1 == p2:
         return 0
-      ccw1 = baseline.ccw(p1)
-      ccw2 = baseline.ccw(p2)
-      if ccw1 != ccw2:
-        if ccw1 == Clockwise.clockwise or ccw2 == Clockwise.clockwise:
-          return 1 if ccw2 == Clockwise.clockwise else -1
-        if ccw1 == Clockwise.otherwise or ccw2 == Clockwise.otherwise:
-          return 1 if ccw2 == Clockwise.otherwise else -1
-        if ccw1 == Clockwise.ccw or ccw2 == Clockwise.ccw:
-          return 1 if ccw2 == Clockwise.ccw else -1
-        assert(False)
-      a = Point.dot(base, (p1 - center).regular())
-      b = Point.dot(base, (p2 - center).regular())
-      if ccw1 == Clockwise.ccw:
-        return -1 if a < b else 1
-      else:
-        return 1 if a < b else -1
-    x = sorted(vs, key=cmp_to_key(comp))
-    return x
+      ccw = baseline.ccw(p1)
+      cos = Point.dot(base, (p1 - center).regular())
+      theta = math.acos(cos)
+      if ccw == Clockwise.clockwise:
+        theta = 2 * math.acos(-1) - theta
+      return theta
+    #print([(v, angle(v), baseline.ccw(v)) for v in vs])
+    srted = sorted(vs, key=angle)
+    ret = []
+    for v in srted:
+      if not (v in ret):
+        ret.append(v)
+    return ret
 
   def fold(self, line, v):
     center = Point("1/2", "1/2")
@@ -199,7 +193,6 @@ class Paper:
           pass # TODO 内部の点 new_in_vs.append(n_v)
     new_vs.append(line.p1)
     new_vs.append(line.p2)
-    print(new_vs)
     self.vertex = Paper.vertex_sort(new_vs)
     self.skeltons.append(line)
 
