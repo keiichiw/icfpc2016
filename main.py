@@ -270,7 +270,7 @@ class Origami:
         for v in self.dv:
           if edge.ccw(v) == Clockwise.clockwise:
             #updated = True
-            print("Fold {}: {}".format(cnt, edge), file=sys.stderr)
+            #print("Fold {}: {}".format(cnt, edge), file=sys.stderr)
             cnt += 1
             self.fold(edge, Clockwise.clockwise)
             updated = True
@@ -441,15 +441,13 @@ class Origami:
 
 
 def main():
-  origami = Origami("ownProbs/sol_17.in")
-  #origami.fold(Line(Point("0","0"), Point("1","1/2")), Clockwise.clockwise)
-  #origami.fold(Line(Point("0", "1/2"), Point("1/2", "1/4")), Clockwise.clockwise)
-  #origami.fold(Line(Point("0", "1/2"), Point("1", "1/2")), Clockwise.clockwise)
-  #origami.solve(target)
-  origami.rotate(Point("0","0"),Fraction("4/5"),Fraction("3/5"))
-  origami.shift(Point("2/5","0"))
-  origami.fold(Line(Point("0","0"), Point("1","0")), Clockwise.ccw)
-  origami.shift(Point("0","66/80"))
+  origami = Origami("ownProbs/sol_33.in")
+  #origami = Origami()
+  origami.rotate(Point("1/4","1/4"),Fraction("-1"),Fraction("0"))
+
+  #origami.shift(Point("-1/2","0"))
+  #origami.fold(Line(Point("-1/2","0"), Point("0","1/2")), Clockwise.clockwise)
+  #origami.shift(Point("1/2","-1/2"))
   print(origami.to_s())
 
 if __name__ == '__main__':
