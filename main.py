@@ -162,7 +162,6 @@ class Line:
       assert False
     ret = m.p1 + (m.p2 - m.p1) * (b / a)
 
-    print("cross: l={}, m={}, cross={}".format(l, m, ret))
     return ret
 
 # 目的とする形
@@ -182,7 +181,6 @@ class Target:
     self.vs = self.take_convexhull()
     self.shift = Point(min(self.vs, key=lambda v: v.x).x,
                        min(self.vs, key=lambda v: v.y).y)
-    #print(self.vs)
     # 平行移動
     self.vs = list(map(lambda v: v-self.shift, self.vs))
 
@@ -273,7 +271,6 @@ class Origami:
     # vs は (id, point)のリスト
     # 頂点リストccwへ変換
     ln = len(vs)
-    print(vs)
     svs = sorted(vs, key=lambda pair:pair[1].x)
     nvs = [None for _ in range(ln*2)]
     i=0; k=0
@@ -301,7 +298,6 @@ class Origami:
       facet = self.fs[f_id]
       if not self.intersect_LF(line, f_id):
         end_points = []
-        print("hey")
       else:
         d_edges = []
         f_size = len(facet)
@@ -368,13 +364,11 @@ class Origami:
       new_fs.append(fix_vs  + end_points)
       new_fs.append(move_vs + end_points)
 
-    print("new_fs:", new_fs)
     sorted_new_fs = []
     for facet in new_fs:
       p_list = [(v_id, new_dv[v_id]) for v_id in facet]
       sorted_f = list(map(lambda p:p[0], Origami.facet_sort(p_list)))
       sorted_new_fs.append(sorted_f)
-    print("sorted:", sorted_new_fs)
     self.sv = new_sv
     self.dv = new_dv
     self.fs = sorted_new_fs
@@ -382,9 +376,9 @@ class Origami:
 
 def main():
   origami = Origami()
-  origami.fold(Line(Point("0", "1/2"), Point("1", "0")), Clockwise.clockwise)
+  origami.fold(Line(Point("0", "0"), Point("1", "1/2")), Clockwise.clockwise)
+  origami.fold(Line(Point("0", "1/2"), Point("1/2", "1/4")), Clockwise.clockwise)
   origami.fold(Line(Point("0", "1/2"), Point("1", "1/2")), Clockwise.clockwise)
-  origami.fold(Line(Point("1", "1/2"), Point("0", "1/2")), Clockwise.ccw)
   #origami.solve(target)
   print(origami.to_s())
 
