@@ -271,8 +271,6 @@ class Origami:
     return "(src={}, dst={}, facets={})".format(self.sv, self.dv, self.fs)
 
 def main():
-  t = Target("problems/problem_100.in")
-  print(t.vs) ;return
   origami = Origami()
   print(origami.to_s())
 
