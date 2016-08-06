@@ -146,6 +146,13 @@ class Target:
       print("error...")
       raise
     self.vs = self.take_convexhull()
+    self.shift = Point(min(self.vs, key=lambda v: v.x).x,
+                       min(self.vs, key=lambda v: v.y).y)
+    #print(self.vs)
+    # 平行移動
+    self.vs = list(map(lambda v: v-self.shift, self.vs))
+
+
   def take_convexhull(self):
     # 頂点リストccwへ変換
     ln = len(self.vs)
@@ -250,6 +257,9 @@ class Origami:
       assert False
     assert (len(self.sv) == len(self.dv))
 
+  def solve(self, target):
+    self.dv = list(map(lambda v: v+target.shift, self.dv))
+
   def to_s(self):
     def ln(s):
       return str(s) + "\n"
@@ -272,6 +282,8 @@ class Origami:
 
 def main():
   origami = Origami()
+  target = Target("problems/problem_4.in")
+  origami.solve(target)
   print(origami.to_s())
 
 if __name__ == '__main__':
