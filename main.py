@@ -5,10 +5,7 @@ import copy
 from enum import IntEnum, Enum
 import fractions
 import math
-from decimal import *
-getcontext().prec = 100
-
-EPS = Decimal("0.00000000000000000000000000000000001")
+from fractions import Fraction
 
 class Clockwise(IntEnum):
   ccw = 1
@@ -23,26 +20,16 @@ class INOUT(Enum):
   ON = 0
 
 class Point:
-  def frac2decimal(s):
-    s=s.strip()
-    x = s.find("/")
-    if x == -1:
-      return Decimal(s)
-    else:
-      a = Decimal(s[:x] + ".0")
-      b = Decimal(s[x + 1:]+ ".0")
-      return a / b
-
   def __init__(self, x, y):
     if isinstance(x, str) and isinstance(y, str):
-      self.x = Point.frac2decimal(x)
-      self.y = Point.frac2decimal(y)
-    elif isinstance(x, Decimal) and isinstance(y, Decimal):
+      self.x = Fraction(x)
+      self.y = Fraction(y)
+    elif isinstance(x, Fraction) and isinstance(y, Fraction):
       self.x = x
       self.y = y
     elif (isinstance(x, float) and isinstance(y, float)) or (isinstance(x, int) and isinstance(y, int)):
-      self.x = Decimal(x)
-      self.y = Decimal(y)
+      self.x = Fraction(x)
+      self.y = Fraction(y)
     else:
       assert False
 
@@ -64,24 +51,24 @@ class Point:
   def __mul__(self, other):
     if isinstance(other, Point):
       return (self.x * other.x) + (self.y * other.y)
-    elif isinstance(other, Decimal):
+    elif isinstance(other, Fraction):
       return Point(self.x * other, self.y * other)
     else:
       print(self, other)
       assert False
 
   def __truediv__(self, other):
-    if isinstance(other, Decimal):
+    if isinstance(other, Fraction):
       return Point(self.x /other, self.y / other)
     elif isinstance(other, float):
-      other0 = Decimal(other)
+      other0 = Fraction(other)
       return Point(self.x /other0, self.y / other0)
     else:
       print(self, other)
       assert False
 
-  def norm(self):
-    return (self.x ** 2 + self.y ** 2).sqrt()
+  def norm2(self):
+    return (self.x ** 2 + self.y ** 2)
 
   def regular(self):
     return self / (self.x ** 2 + self.y ** 2).sqrt()
@@ -102,7 +89,7 @@ class Point:
       return Clockwise.clockwise
     if Point.dot(b, c) < 0:
       return Clockwise.cab
-    if b.norm() < c.norm():
+    if b.norm2() < c.norm2():
       return Clockwise.abc
     return Clockwise.otherwise
 
@@ -131,7 +118,7 @@ class Line:
 
   def lin_sym(self, p):
     d = self.projection(p) - p
-    return p + d * Decimal(2)
+    return p + d * Fraction(2)
 
   def intersect_LL(l1, l2):# 直線同士の交叉
     a = abs(Point.cross(l1.p2 - l1.p1, l2.p2 - l2.p1)) > EPS
@@ -395,7 +382,7 @@ class Origami:
 
 def main():
   origami = Origami()
-  target = Target("problems/problem_4.in")
+  target = Target("problems/problem_101.in")
   origami.solve(target)
   print(origami.to_s())
 
