@@ -3,3 +3,5 @@
 *.out
 /problems/*.in
 /problems/*.png
+/problems/*.out
+/problems/*.log
