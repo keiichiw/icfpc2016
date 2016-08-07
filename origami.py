@@ -99,6 +99,16 @@ def parse_pointstr(s):
   [a,b] = s.split(",")
   return Point(a,b)
 
+def is_square(q):
+  n = q.numerator
+  d = q.denominator
+  return int(math.sqrt(n))**2==n and int(math.sqrt(d))**2==d
+def square(q):
+  n = q.numerator
+  d = q.denominator
+  return Fraction(int(math.sqrt(n)), int(math.sqrt(d)))
+
+
 class Line:
   def __init__(self, p1, p2):
     self.p1 = p1
@@ -178,10 +188,14 @@ class Target:
     except Exception:
       print("error...")
       raise
+    # 凸包
     self.vs = self.take_convexhull()
+    # 回転
+    (self.r_center, self.r_sin, self.r_cos) = self.find_rotate()
+    self.rotate(self.r_center, -self.r_sin, self.r_cos)
+    # 移動
     self.shift = Point(min(self.vs, key=lambda v: v.x).x,
                        min(self.vs, key=lambda v: v.y).y)
-    # 平行移動
     self.vs = list(map(lambda v: v-self.shift, self.vs))
 
   def take_convexhull(self):
@@ -200,6 +214,45 @@ class Target:
         k-=1
       nvs[k] = svs[i]; i-=1; k+=1;
     return nvs[:k-1]
+
+  def find_rotate(self):
+    # 最長有理数辺を軸に合わせる
+    # 返り値は逆変換
+    vnum = len(self.vs)
+    p_id = -1
+    maxline = Point(0,0)
+    maxc = 0
+    for i in range(vnum):
+      p1 = self.vs[i]
+      p2 = self.vs[(i+1) % vnum]
+      line = p2-p1
+      c2 = line.x**2 + line.y**2
+      if not is_square(c2):
+        continue
+      c = square(c2)
+      if c > maxc:
+        p_id = i
+        maxline = line
+        maxc = c
+    if p_id < 0:
+      print("rotate: none")
+      return (Point(0,0), 0, 1)
+
+    sin = maxline.y / maxc
+    cos = maxline.x / maxc
+    print("rotate: {}, sin {}, cos {}".format(self.vs[p_id], sin,cos))
+    return (self.vs[p_id], sin, cos)
+
+  def rotate(self, center, s, c):
+    # center:Point, s,c*Fraction
+    assert(s**2+c**2==1)
+    def sub_rotate(v):
+      nx = (v.x-center.x)*c-(v.y-center.y)*s + center.x
+      ny = (v.x-center.x)*s+(v.y-center.y)*c + center.y
+      return Point(nx,ny)
+    self.vs = list(map(sub_rotate, self.vs))
+
+
 
 class Origami:
   def __init__(self, filename=None):
@@ -235,8 +288,11 @@ class Origami:
     self.fs = copy.deepcopy(other.fs)
 
   def solve(self, target):
+    # 凸包生成
     self.greedy(target)
+    # ターゲットに合わせる
     self.shift(target.shift)
+    self.rotate(target.r_center, target.r_sin, target.r_cos)
 
   def to_s(self):
     def ln(s):
@@ -470,13 +526,16 @@ def solve_all():
     solve_problem(i)
 
 def main():
-  origami = Origami("ownProbs/arch_33_35.in")
-  #origami = Origami()
-  origami.rotate(Point("1/4","2/3"),Fraction("20/29"),Fraction("21/29"))
+  target = Target("problems/problem_100.in")
+  print(target.vs)
+  # origami = Origami("ownProbs/arch_36_39.in")
+  # origami.shift(Point("-1/2","-1/4"))
+  # origami.rotate(Point("0","0"),Fraction("7/25"),Fraction("24/25"))
+  # origami.fold(Line(Point("1","0"), Point("1","1")), Clockwise.ccw)
+  # origami.shift(Point("-2","0"))
 
-  #origami.shift(Point("-1/2","0"))
-  #origami.fold(Line(Point("-1/2","0"), Point("0","1/2")), Clockwise.clockwise)
-  #origami.shift(Point("1/2","-1/2"))
+  origami = Origami()
+  origami.solve(target)
   print(origami.to_s())
 
 if __name__ == '__main__':
