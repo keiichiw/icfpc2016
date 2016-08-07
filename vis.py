@@ -96,15 +96,28 @@ def plot_solution(data, filename):
     for i in range(len(poly) - 1):
       lines1.append((vs[poly[i]], vs[poly[i + 1]]))
   lc = mc.LineCollection(lines1, linewidths=2)
+  pl.axis([-0.5, 1.5, -0.5, 1.5])
   subplt.add_collection(lc)
   subplt.autoscale_view(True,True,True)
-  pl.axis([-0.5, 1.5, -0.5, 1.5])
   pl.grid(True)
   plt.plot()
 
   # シルエット
   subplt1 = fig.add_subplot(2, 2, 2,aspect='equal')
   vs = data["mappings"]
+  inf = float("inf")
+  mn_x, mn_y = inf, inf
+  mx_x, mx_y = -inf, -inf
+  for v in vs:
+    mn_x = min(mn_x, v[0])
+    mx_x = max(mx_x, v[0])
+    mn_y = min(mn_y, v[1])
+    mx_y = max(mx_y, v[1])
+  cx = (mn_x + mx_x) / 2
+  cy = (mn_y + mx_y) / 2
+  print(vs)
+  vs = [(x -  cx, y -  cy) for (x, y) in vs]
+  print(vs)
   lines1 = []
   for poly in data["polygons"]:
     poly.append(poly[0])
@@ -113,6 +126,7 @@ def plot_solution(data, filename):
   lc = mc.LineCollection(lines1, linewidths=2)
   subplt1.add_collection(lc)
   subplt1.autoscale_view(True,True,True)
+  #pl.axis([-mn_x - 1,mx_x + 1,  -mn_y - 1, mx_y + 1])
   pl.axis([-0.5, 1.5, -0.5, 1.5])
   pl.grid(True)
   plt.plot()
