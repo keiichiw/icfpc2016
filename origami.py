@@ -371,8 +371,11 @@ class Origami:
     e_list = [Line(target.vs[i], target.vs[(i + 1) % v_size]) for i in range(v_size)]
     e_list =  target.get_rect()
 
-
+    start_time = time.time()
     while updated and cnt < 20:
+      now_time = time.time()
+      if now_time - start_time > 5:
+        break
       updated = False
       max_ev = -float("inf")
       fold_edges = []
