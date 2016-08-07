@@ -184,7 +184,6 @@ class Target:
     # 平行移動
     self.vs = list(map(lambda v: v-self.shift, self.vs))
 
-
   def take_convexhull(self):
     # 頂点リストccwへ変換
     ln = len(self.vs)
@@ -230,9 +229,14 @@ class Origami:
         assert False
     assert (len(self.sv) == len(self.dv))
 
+  def copy(self, other):
+    self.sv = copy.deepcopy(other.sv)
+    self.dv = copy.deepcopy(other.dv)
+    self.fs = copy.deepcopy(other.fs)
+
   def solve(self, target):
     self.greedy(target)
-    self.dv = list(map(lambda v: v+target.shift, self.dv))
+    self.shift(target.shift)
 
   def to_s(self):
     def ln(s):
@@ -254,11 +258,18 @@ class Origami:
   def __repr__(self):
     return "(src={}, dst={}, facets={})".format(self.sv, self.dv, self.fs)
 
+  def sol_size(self, shift):
+    origami = Origami()
+    origami.copy(self)
+    origami.shift(shift)
+    return len("".join(origami.to_s().split()))
+
   def greedy(self, target):
     v_size = len(target.vs)
     updated = True
     cnt = 0
-    while updated:
+    prev = copy.deepcopy(self)
+    while updated and self.sol_size(target.shift) < 5000:
       updated = False
       break_flg = False
       for i in range(v_size):
@@ -272,10 +283,15 @@ class Origami:
             #updated = True
             #print("Fold {}: {}".format(cnt, edge), file=sys.stderr)
             cnt += 1
+            prev = copy.deepcopy(self)
             self.fold(edge, Clockwise.clockwise)
             updated = True
             break_flg = True
             break
+
+    if self.sol_size(target.shift) > 5000:
+      print("solution size exceed {} -> {}".format(self.sol_size(target.shift), prev.sol_size(target.shift)), file=sys.stderr)
+      self.copy(prev)
 
   def rotate(self, center, s, c):
     # center:Point, s,c*Fraction
@@ -440,10 +456,11 @@ class Origami:
 
 
 def solve_problem(p_id):
-  print("Problem " + str(p_id))
   origami = Origami()
   target = Target("./problems/problem_" + str(p_id) + ".in")
   origami.solve(target)
+  #print(origami.to_s())
+  print(origami.sol_size(Point(0, 0)))
   outfile = "./problems/solution_" + str(p_id) + ".out"
   with open(outfile, "w") as f:
     f.write(origami.to_s())

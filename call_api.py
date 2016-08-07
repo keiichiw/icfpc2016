@@ -63,7 +63,7 @@ def download_problems():
       print("Skip! Problem " + str(p_id))
     else:
       print("Downloading Problem " + str(p_id))
-      time.sleep(1)
+      time.sleep(3.7)
       txt = get_problem(p_id, p_hash, pathname)
 
 def submit_solutions(ids):
