@@ -81,6 +81,19 @@ def submit_solutions(ids):
       print("no solution file: id {}".format(i+1))
       pass
 
+def look_own_probs():
+  res = get_recent_status()
+  ownProbs = list(filter(lambda p:p["owner"]=="131",res["problems"]))
+  for i in range(len(ownProbs)):
+    p_id = ownProbs[i]["problem_id"]
+    ranking = ownProbs[i]["ranking"]
+    resems = list(map(lambda r:r["resemblance"], ranking))
+    if len(resems) > 0:
+      maxresem = max(resems)
+    else:
+      maxresem = "none"
+    print("{}, id {}, resemblance {}".format(i+1,p_id, maxresem))
+
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('mode', choices=['download', 'hello', 'solve'], help="download")
