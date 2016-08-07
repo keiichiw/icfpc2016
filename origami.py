@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 # -*- encoding: utf-8 -*-
+import time
 import sys
 import copy
 from enum import IntEnum, Enum
@@ -191,7 +192,7 @@ class Target:
             for v in range(nv):
               self.vs.append(parse_pointstr(f.readline()))
       elif isinstance(src, list):
-        self.vs = src
+        self.vs = copy.deepcopy(src)
       else:
         assert(False)
     except Exception:
@@ -244,12 +245,10 @@ class Target:
         maxline = line
         maxc = c
     if p_id < 0:
-      print("rotate: none")
       return (Point(0,0), 0, 1)
 
     sin = maxline.y / maxc
     cos = maxline.x / maxc
-    print("rotate: {}, sin {}, cos {}".format(self.vs[p_id], sin,cos))
     return (self.vs[p_id], sin, cos)
 
   def rotate(self, center, s, c):
@@ -361,7 +360,7 @@ class Origami:
       return -float("inf")
     after = Target(origami.dv)
     if before.calc_area() == after.calc_area():
-      return -float("inf")
+      return -100000
     return -after.calc_area()
 
   def greedy(self, target):
@@ -370,16 +369,14 @@ class Origami:
     cnt = 0
 
     e_list = [Line(target.vs[i], target.vs[(i + 1) % v_size]) for i in range(v_size)]
-    e_list +=  target.get_rect()
+    e_list =  target.get_rect()
 
-    v_list = Target(self.dv).vs
-    #v_list = self.dv
 
     while updated and cnt < 20:
       updated = False
       max_ev = -float("inf")
       fold_edges = []
-
+      v_list = self.dv
       for edge in e_list:
         for v in v_list:
           if edge.ccw(v) == Clockwise.clockwise:
@@ -575,6 +572,8 @@ def solve_all():
     solve_problem(i)
 
 def main():
+  solve_problem(3560)
+  return
   target = Target("problems/problem_100.in")
   print(target.vs)
   # origami = Origami("ownProbs/arch_36_39.in")
