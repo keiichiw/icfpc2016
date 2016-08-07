@@ -6,6 +6,9 @@ from enum import IntEnum, Enum
 import fractions
 import math
 from fractions import Fraction
+import random
+
+random.seed(0)
 
 class Clockwise(IntEnum):
   ccw = 1
@@ -176,15 +179,21 @@ class Line:
 
 # 目的とする形
 class Target:
-  def __init__(self, filename):
+  def __init__(self, src):
     self.vs = []
     try:
-      with open(filename) as f:
-        np = int(f.readline())
-        for p in range(np):
-          nv = int(f.readline())
-          for v in range(nv):
-            self.vs.append(parse_pointstr(f.readline()))
+      if isinstance(src, str):
+        filename = src
+        with open(filename) as f:
+          np = int(f.readline())
+          for p in range(np):
+            nv = int(f.readline())
+            for v in range(nv):
+              self.vs.append(parse_pointstr(f.readline()))
+      elif isinstance(src, list):
+        self.vs = src
+      else:
+        assert(False)
     except Exception:
       print("error...")
       raise
@@ -252,7 +261,28 @@ class Target:
       return Point(nx,ny)
     self.vs = list(map(sub_rotate, self.vs))
 
+  def calc_area(self):
+    area = Fraction(0)
+    vsize = len(self.vs)
+    for i in range(vsize):
+      area += Point.cross(self.vs[i], self.vs[(i + 1) % vsize])
+    return area
 
+  def get_rect(self):
+    mx_x, mn_x = self.vs[0].x, self.vs[0].x
+    mx_y, mn_y = self.vs[0].y, self.vs[0].y
+    for v in self.vs:
+      mx_x = max(mx_x, v.x)
+      mn_x = min(mn_x, v.x)
+      mx_y = max(mx_y, v.y)
+      mn_y = min(mn_y, v.y)
+
+    p1 = Point(mn_x, mn_y)
+    p2 = Point(mx_x, mn_y)
+    p3 = Point(mx_x, mx_x)
+    p4 = Point(mn_x, mx_y)
+
+    return [Line(p1, p2), Line(p2, p3), Line(p3, p4), Line(p4, p1)]
 
 class Origami:
   def __init__(self, filename=None):
@@ -320,34 +350,54 @@ class Origami:
     origami.shift(shift)
     return len("".join(origami.to_s().split()))
 
+  def eval_fold(self, edge, shift):#折りの良さの評価関数
+    # 折った後のシルエットの凸包の面積が小さい方が良い
+    origami = Origami()
+    origami.copy(self)
+
+    before = Target(origami.dv)
+    origami.fold(edge, Clockwise.clockwise)
+    if origami.sol_size(shift) >= 5000:
+      return -float("inf")
+    after = Target(origami.dv)
+    if before.calc_area() == after.calc_area():
+      return -float("inf")
+    return -after.calc_area()
+
   def greedy(self, target):
     v_size = len(target.vs)
     updated = True
     cnt = 0
-    prev = copy.deepcopy(self)
-    while updated and self.sol_size(target.shift) < 5000:
-      updated = False
-      break_flg = False
-      for i in range(v_size):
-        if break_flg:
-          break
-        a = target.vs[i]
-        b = target.vs[(i + 1) % v_size]
-        edge = Line(a, b)
-        for v in self.dv:
-          if edge.ccw(v) == Clockwise.clockwise:
-            #updated = True
-            #print("Fold {}: {}".format(cnt, edge), file=sys.stderr)
-            cnt += 1
-            prev = copy.deepcopy(self)
-            self.fold(edge, Clockwise.clockwise)
-            updated = True
-            break_flg = True
-            break
 
-    if self.sol_size(target.shift) > 5000:
-      print("solution size exceed {} -> {}".format(self.sol_size(target.shift), prev.sol_size(target.shift)), file=sys.stderr)
-      self.copy(prev)
+    e_list = [Line(target.vs[i], target.vs[(i + 1) % v_size]) for i in range(v_size)]
+    e_list +=  target.get_rect()
+
+    v_list = Target(self.dv).vs
+    #v_list = self.dv
+
+    while updated and cnt < 20:
+      updated = False
+      max_ev = -float("inf")
+      fold_edges = []
+
+      for edge in e_list:
+        for v in v_list:
+          if edge.ccw(v) == Clockwise.clockwise:
+            ev = self.eval_fold(edge, target.shift)
+            if max_ev < ev:
+              max_ev = ev
+              fold_edges = [edge]
+            elif len(fold_edges) > 0 and max_ev == ev:
+              fold_edges.append(edge)
+
+      if len(fold_edges) > 0:
+        cnt += 1
+        idx = random.randint(0, len(fold_edges) - 1)
+        print("Fold {}: {}".format(cnt, fold_edges[idx]))
+        self.fold(fold_edges[idx], Clockwise.clockwise)
+        updated = True
+
+    assert(self.sol_size(target.shift) < 5000)
 
   def rotate(self, center, s, c):
     # center:Point, s,c*Fraction
@@ -509,7 +559,6 @@ class Origami:
     self.sv = new_sv
     self.dv = new_dv
     self.fs = sorted_new_fs
-
 
 def solve_problem(p_id):
   origami = Origami()
