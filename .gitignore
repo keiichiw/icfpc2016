@@ -5,4 +5,5 @@
 /problems/*.png
 /problems/*.out
 /problems/*.log
+/problems_old/*
 __pycache__/
