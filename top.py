@@ -84,20 +84,22 @@ def submit_problem(p_id):
         res = call_api.api_submit_sol(p_id, content)
     return res
 
-def solve_submit_problem(p_id):
+def solve_submit_problem(p_id, n_time):
     try:
         origami.solve_problem(p_id)
     except Exception:
         print("error in solving prob_{}".format(p_id))
         raise
-
+    now = time.time()
+    w_time = max(0, n_time - now)
+    time.sleep(w_time)
     try:
         ret = submit_problem(p_id)
     except Exception:
         print("error in submitting prob_{}".format(p_id))
         raise
 
-    return ret
+    return ret, time.time()
 
 def submit_unsubmitted():
     p_list = get_problems()
@@ -105,6 +107,7 @@ def submit_unsubmitted():
     own = get_own_problems()
     result = []
 
+    n_time = time.time()
     for p_id in p_list:
         try:
             if p_id in submitted:
@@ -114,7 +117,8 @@ def submit_unsubmitted():
             if p_id in own:
                 continue
             print("Problem {}".format(p_id))
-            res = solve_submit_problem(p_id)
+            res, p_time = solve_submit_problem(p_id, n_time)
+            n_time = p_time + 3.7
             if not res['ok']:
                 print("NG response: Problem {}".format(p_id))
                 print(res)
@@ -126,7 +130,6 @@ def submit_unsubmitted():
                 print("Problem {}' resemblance: {}".format(p_id, resem))
             write_submitted(submitted, solved)
             result.append((p_id, res))
-            time.sleep(3.7)
         except Exception:
             print("Error in submit_unsubmitted {}".format(p_id), sys.exc_info()[0])
             pass
