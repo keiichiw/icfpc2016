@@ -470,9 +470,9 @@ def solve_all():
     solve_problem(i)
 
 def main():
-  origami = Origami("ownProbs/sol_33.in")
+  origami = Origami("ownProbs/arch_33_35.in")
   #origami = Origami()
-  origami.rotate(Point("1/4","1/4"),Fraction("-1"),Fraction("0"))
+  origami.rotate(Point("1/4","2/3"),Fraction("20/29"),Fraction("21/29"))
 
   #origami.shift(Point("-1/2","0"))
   #origami.fold(Line(Point("-1/2","0"), Point("0","1/2")), Clockwise.clockwise)

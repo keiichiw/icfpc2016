@@ -68,7 +68,6 @@ def read_solution(infile):
     raise
 
 def plot_input(data, filename):
-  plt.clf()
   # http://stackoverflow.com/a/21357666
   lc = mc.LineCollection(data["lines"], linewidths=2)
   fig, ax = pl.subplots()
@@ -87,7 +86,6 @@ def plot_input(data, filename):
   plt.show()
 
 def plot_solution(data, filename):
-  plt.clf()
   fig = plt.figure()
   # 展開図
   subplt = fig.add_subplot(2, 2, 1,aspect='equal')
