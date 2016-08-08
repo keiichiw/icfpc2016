@@ -582,9 +582,6 @@ def solve_all():
     solve_problem(i)
 
 def main():
-  #solve_problem(3560)
-  solve_problem(2796)
-  return
   target = Target("problems/problem_100.in")
   print(target.vs)
   # origami = Origami("ownProbs/arch_36_39.in")

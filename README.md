@@ -1,30 +1,11 @@
-#ICFPC16
+#ICFP Programming Contest 2016
 * http://icfpc2016.blogspot.jp/
 
-# Visualizer
-入力・解を可視化する。
+* チーム名: typo
 
-```
-$ ./vis.py [inp | sol] -i <input file>
-```
-
-例:
-
-入力
-```
-$ ./vis.py inp -i ./test/inp.in
-```
-
-解
-```
-$ ./vis.py sol -i ./test/sol.in
-```
-
-# 問題のダウンロード
-
-```
-$ ./call_api.py download
-```
-
-追加された問題のみダウンロードしてくる
-ダウンロードには、[問題数]秒かかる (API制限のため)
+## 方針
+* 入力シルエットの凸包をとる
+* 長さが有理数であるような辺があれば、そのうち最大のものがx軸と重なるように回転
+* 入力シルエットの凸包ができるまで折る
+  - 折る辺の選択は基本ランダム
+  - solution size limitに達しても、resemblanceが極端に小さい場合は、折ることで全体の面積が小さくなるような辺から優先的に折るような方針も試してみる
