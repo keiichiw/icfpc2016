@@ -6,6 +6,7 @@ import origami
 import os
 import sys
 import time
+import random
 import argparse
 from datetime import datetime as dt
 
@@ -53,6 +54,15 @@ def get_own_problems():
             own.append(int(x.rstrip()))
     return own
 
+def get_again_problems():
+    l = []
+    with open(CUR_DIR + "/again.txt", "r") as f:
+        lns = f.readlines()
+        for x in lns:
+            l.append(int(x.rstrip()))
+    l.sort()
+    return l
+
 def write_submitted(submitted, solved):
     submitted = list(set(submitted))
     solved = list(set(solved))
@@ -67,6 +77,14 @@ def write_submitted(submitted, solved):
         for p_id in solved:
             print(p_id, file=f)
     return (submitted, solved)
+
+def write_again(again):
+    again = list(set(again))
+    again.sort()
+
+    with open(CUR_DIR + "/again.txt", "w") as f:
+        for p_id in again:
+            print(p_id, file=f)
 
 def write_log(result):
     tdatetime = dt.now()
@@ -84,9 +102,12 @@ def submit_problem(p_id):
         res = call_api.api_submit_sol(p_id, content)
     return res
 
-def solve_submit_problem(p_id, n_time):
+def solve_submit_problem(p_id, n_time, flg):
     try:
-        origami.solve_problem(p_id)
+        if flg:
+            origami.solve_problem(p_id, timelimit=120)
+        else:
+            origami.solve_problem(p_id, timelimit=30)
     except Exception:
         print("error in solving prob_{}".format(p_id))
         raise
@@ -98,26 +119,49 @@ def solve_submit_problem(p_id, n_time):
     except Exception:
         print("error in submitting prob_{}".format(p_id))
         raise
+    n_time = time.time() + 3.7
 
+    if ret['ok'] and ret['resemblance'] < 0.25:
+        print("resem={}, so try again!".format(ret['resemblance']))
+        try:
+            if flg:
+                origami.solve_problem(p_id, eval_flg=True, timelimit=120)
+            else:
+                origami.solve_problem(p_id, eval_flg=True, timelimit=45)
+        except Exception:
+            print("error in solving prob_{}".format(p_id))
+            raise
+        now = time.time()
+        w_time = max(0, n_time - now)
+        time.sleep(w_time)
+        try:
+            ret = submit_problem(p_id)
+        except Exception:
+            print("error in submitting prob_{}".format(p_id))
+            raise
+        print("new resem={}".format(ret['resemblance']))
     return ret, time.time()
 
-def submit_unsubmitted():
+def submit_problems(rand_flg=False, rand_num=0):
     p_list = get_problems()
     (submitted, solved) = get_submitted()
+    again = get_again_problems()
     own = get_own_problems()
     result = []
-
+    if rand_flg:
+        p_list = again + random.sample(p_list, rand_num)
     n_time = time.time()
     for p_id in p_list:
         try:
-            if p_id in submitted:
-                continue
             if p_id in solved:
                 continue
             if p_id in own:
                 continue
+            if not rand_flg:
+              if p_id in submitted:
+                  continue
             print("Problem {}".format(p_id))
-            res, p_time = solve_submit_problem(p_id, n_time)
+            res, p_time = solve_submit_problem(p_id, n_time, rand_flg)
             n_time = p_time + 3.7
             if not res['ok']:
                 print("NG response: Problem {}".format(p_id))
@@ -129,6 +173,9 @@ def submit_unsubmitted():
                     solved.append(p_id)
                 print("Problem {}' resemblance: {}".format(p_id, resem))
             write_submitted(submitted, solved)
+            if p_id in again:
+                again.remove(p_id)
+                write_again(again)
             result.append((p_id, res))
         except Exception:
             print("Error in submit_unsubmitted {}".format(p_id), sys.exc_info()[0])
@@ -136,24 +183,31 @@ def submit_unsubmitted():
     submitted.sort()
     solved.sort()
     write_submitted(submitted, solved)
+    write_again(again)
     write_log(result)
     print("end")
 
-def solve_submit(maxid):
-    for i in range(1,maxid+1):
+
+def main():
+    call_api.download_problems()
+    while True:
         try:
-            origami = origami.Origami()
-            target = origami.Target("problems/problem_{}.in".format(i))
-            origami.solve(target)
-            res = call_api.api_submit_sol(i, origami.to_s())
-            print(res)
+            submit_problems()
             time.sleep(1)
+            download_num = call_api.download_problems()
+            cnt = 0
+            while download_num == 0 and cnt < 20:
+                print("random 30")
+                submit_problems(rand_flg=True, rand_num=30)
+                time.sleep(1)
+                download_num = call_api.download_problems()
+                cnt += 1
         except Exception:
-            print("error in solving prob_{}".format(i))
+            print("Error in main", sys.exc_info()[0], sys.exc_info()[1])
             pass
 
 if __name__ == "__main__":
-    submit_unsubmitted()
+    main()
 
     #parser = argparse.ArgumentParser()
     #parser.add_argument("-m", "--maxid", type=int, required=True, help="maximum id for submition")

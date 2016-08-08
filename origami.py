@@ -106,7 +106,11 @@ def parse_pointstr(s):
 def is_square(q):
   n = q.numerator
   d = q.denominator
-  return int(math.sqrt(n))**2==n and int(math.sqrt(d))**2==d
+  try:
+    return int(math.sqrt(n))**2==n and int(math.sqrt(d))**2==d
+  except Exception:
+    return False
+
 def square(q):
   n = q.numerator
   d = q.denominator
@@ -316,9 +320,9 @@ class Origami:
     self.dv = copy.deepcopy(other.dv)
     self.fs = copy.deepcopy(other.fs)
 
-  def solve(self, target):
+  def solve(self, target, eval_flg, timelimit):
     # 凸包生成
-    self.greedy(target)
+    self.greedy(target, eval_flg, timelimit)
     # ターゲットに合わせる
     self.shift(target.shift)
     self.rotate(target.r_center, target.r_sin, target.r_cos)
@@ -343,28 +347,30 @@ class Origami:
   def __repr__(self):
     return "(src={}, dst={}, facets={})".format(self.sv, self.dv, self.fs)
 
-  def sol_size(self, shift):
+  def sol_size(self, shift, r_center, r_sin, r_cos):
     origami = Origami()
     origami.copy(self)
     origami.shift(shift)
+    origami.rotate(r_center, r_sin, r_cos)
     return len("".join(origami.to_s().split()))
 
-  def eval_fold(self, edge, shift):#折りの良さの評価関数
+  def eval_fold(self, edge, shift, r_center, r_sin, r_cos, flg):#折りの良さの評価関数
     # 折った後のシルエットの凸包の面積が小さい方が良い
     origami = Origami()
     origami.copy(self)
 
     before = Target(origami.dv)
     origami.fold(edge, Clockwise.clockwise)
-    if origami.sol_size(shift) >= 5000:
+    if origami.sol_size(shift, r_center, r_sin, r_cos) >= 5000:
       return -float("inf")
+    if not flg:
+      return 10
     after = Target(origami.dv)
     if before.calc_area() == after.calc_area():
       return -100000
-    return 10
     return -after.calc_area()
 
-  def greedy(self, target):
+  def greedy(self, target, eval_flg, timelimit):
     v_size = len(target.vs)
     updated = True
     cnt = 0
@@ -375,8 +381,8 @@ class Origami:
     start_time = time.time()
     while updated and cnt < 30:
       now_time = time.time()
-      if now_time - start_time > 7:
-        print("timeup")
+      if now_time - start_time > timelimit:
+        print("time up")
         break
       updated = False
       max_ev = -float("inf")
@@ -385,7 +391,7 @@ class Origami:
       for edge in e_list:
         for v in v_list:
           if edge.ccw(v) == Clockwise.clockwise:
-            ev = self.eval_fold(edge, target.shift)
+            ev = self.eval_fold(edge, target.shift, target.r_center, target.r_sin, target.r_cos, eval_flg)
             if max_ev < ev:
               max_ev = ev
               fold_edges = [edge]
@@ -399,7 +405,7 @@ class Origami:
         self.fold(fold_edges[idx], Clockwise.clockwise)
         updated = True
 
-    assert(self.sol_size(target.shift) < 5000)
+    assert(self.sol_size(target.shift, target.r_center, target.r_sin, target.r_cos) < 5000)
 
   def rotate(self, center, s, c):
     # center:Point, s,c*Fraction
@@ -562,12 +568,11 @@ class Origami:
     self.dv = new_dv
     self.fs = sorted_new_fs
 
-def solve_problem(p_id):
+def solve_problem(p_id, eval_flg=False, timelimit=8):
   origami = Origami()
   target = Target("./problems/problem_" + str(p_id) + ".in")
-  origami.solve(target)
-  #print(origami.to_s())
-  print(origami.sol_size(Point(0, 0)))
+  origami.solve(target, eval_flg, timelimit)
+  print(len("".join(origami.to_s().split())))
   outfile = "./problems/solution_" + str(p_id) + ".out"
   with open(outfile, "w") as f:
     f.write(origami.to_s())
@@ -577,7 +582,8 @@ def solve_all():
     solve_problem(i)
 
 def main():
-  solve_problem(3560)
+  #solve_problem(3560)
+  solve_problem(2796)
   return
   target = Target("problems/problem_100.in")
   print(target.vs)

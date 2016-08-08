@@ -53,6 +53,7 @@ def get_recent_status():
 
 def download_problems():
   problems = get_recent_status()["problems"]
+  cnt = 0
   for p in problems:
     p_id = p['problem_id']
     p_hash = p['problem_spec_hash']
@@ -62,9 +63,11 @@ def download_problems():
     if os.path.exists(pathname):
       print("Skip! Problem " + str(p_id))
     else:
+      cnt += 1
       print("Downloading Problem " + str(p_id))
       time.sleep(3.7)
       txt = get_problem(p_id, p_hash, pathname)
+  return cnt
 
 def submit_solutions(ids):
   """
